@@ -6,7 +6,8 @@ import (
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
-	"github.com/sosodev/heart/core"
+	"github.com/sosodev/heart/build"
+	"github.com/sosodev/heart/config"
 	"github.com/sosodev/heart/modules"
 	"github.com/sosodev/heart/pool"
 )
@@ -16,10 +17,9 @@ func main() {
 		log.Fatal("usage: heart [path]")
 	}
 	path := os.Args[1]
+	config := config.NewConfig()
 
-	// TODO: env variable to configure initial pool size
-	// maybe make a config struct to deal with env stuff with reasonable defaults
-	statePool, err := pool.New(32, func(nuState *lua.State) error {
+	statePool, err := pool.New(config.InitialPoolSize, func(nuState *lua.State) error {
 		nuState.OpenLibs()
 
 		err := modules.LoadHeart(nuState)
@@ -50,7 +50,6 @@ func main() {
 	build.Routes(app, state, statePool)
 	statePool.Return(state)
 
-	// TODO: env variable for port
-	log.Println("Starting Heart v0.1 💜")
-	log.Fatal(app.Listen(":3333"))
+	log.Println("Heart v" + config.Version + " is listening to port " + config.Port + " 💜")
+	log.Fatal(app.Listen(":" + config.Port))
 }
