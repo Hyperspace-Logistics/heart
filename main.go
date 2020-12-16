@@ -20,7 +20,12 @@ func main() {
 	statePool, err := pool.New(config.InitialPoolSize, func(nuState *lua.State) error {
 		nuState.OpenLibs()
 
-		err := modules.LoadHeart(nuState)
+		err := modules.LoadContext(nuState)
+		if err != nil {
+			return err
+		}
+
+		err = modules.LoadHeart(nuState)
 		if err != nil {
 			return err
 		}

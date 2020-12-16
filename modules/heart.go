@@ -8,6 +8,8 @@ import (
 func LoadHeart(state *lua.State) error {
 	return state.DoString(`
 		package.preload['heart'] = function() 
+			ctx = require('heart.context')
+
 			local heart = { routes = {} }
 
 			function heart.get(path, callback)
