@@ -1,13 +1,20 @@
 package build
 
 import (
-	"github.com/aarzilli/golua/lua"
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/sosodev/heart/pool"
 )
 
-// BuildRoutes for the *fiber.App from the initial *lua.State
-func Routes(app *fiber.App, state *lua.State, statePool *pool.Pool) {
+// Routes for the *fiber.App from the initial *lua.State
+func Routes(app *fiber.App, statePool *pool.Pool) {
+	state, err := statePool.Take()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer statePool.Return(state)
+
 	state.GetGlobal("app")
 	state.GetField(state.GetTop(), "routes")
 	state.PushNil()

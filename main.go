@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
@@ -13,11 +12,10 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatal("usage: heart [path]")
-	}
-	path := os.Args[1]
 	config := config.NewConfig()
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
 
 	statePool, err := pool.New(config.InitialPoolSize, func(nuState *lua.State) error {
 		nuState.OpenLibs()
@@ -27,28 +25,17 @@ func main() {
 			return err
 		}
 
-		return nuState.DoFile(path)
+		return nuState.DoFile(config.Path)
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer statePool.Cleanup()
 
-	app := fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-	})
-
-	// Grab one of the initial states to build up the actual app BuildRoutes
-	//
-	// Note:
-	// This does mean that Lua cannot dynamically change framework stuff but I think that's okay
-	// The alternative would probably kill performance or kill me (with bugs)
-	state, err := statePool.Take()
-	if err != nil {
-		log.Fatal(err)
-	}
-	build.Routes(app, state, statePool)
-	statePool.Return(state)
+	// This function grabs one of the initialStates from the pool to build up the fiber routes
+	// It's worth noting that this means that app routes can't be built up dynamically
+	// But that's probably not a good idea anyway and implementing it would probably kill performance or me :(
+	build.Routes(app, statePool)
 
 	log.Println("Heart v" + config.Version + " is listening to port " + config.Port + " 💜")
 	log.Fatal(app.Listen(":" + config.Port))

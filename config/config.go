@@ -8,6 +8,7 @@ import (
 
 // Config for the application
 type Config struct {
+	Path            string
 	Version         string
 	InitialPoolSize int
 	Port            string
@@ -15,6 +16,11 @@ type Config struct {
 
 // NewConfig gets you a new *Config
 func NewConfig() *Config {
+	if len(os.Args) < 2 {
+		log.Fatal("usage: heart [path]")
+	}
+	path := os.Args[1]
+
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "3333"
@@ -31,6 +37,7 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
+		Path:            path,
 		Version:         "0.1",
 		InitialPoolSize: initialPoolSize,
 		Port:            port,
