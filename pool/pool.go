@@ -4,10 +4,12 @@ import (
 	"sync"
 
 	"github.com/aarzilli/golua/lua"
+	"github.com/sosodev/heart/config"
 )
 
 // Pool is a pool of *lua.State
 type Pool struct {
+	config      *config.Config
 	stack       []*lua.State
 	top         int
 	lock        sync.Mutex
@@ -17,14 +19,15 @@ type Pool struct {
 // New gets you a *Pool of fully initialized *lua.State
 // Needs the initial size of the pool and an initializer function
 // The initializer will be reused later when the pool grows to meet peak demand
-func New(size int, initializer func(*lua.State) error) (*Pool, error) {
+func New(config *config.Config, initializer func(*lua.State) error) (*Pool, error) {
 	pool := &Pool{
-		stack:       make([]*lua.State, size),
-		top:         size - 1,
+		config:      config,
+		stack:       make([]*lua.State, config.InitialPoolSize),
+		top:         config.InitialPoolSize - 1,
 		initializer: initializer,
 	}
 
-	for i := 0; i < size; i++ {
+	for i := 0; i < config.InitialPoolSize; i++ {
 		state := lua.NewState()
 		pool.stack[i] = state
 		err := pool.initializer(state)

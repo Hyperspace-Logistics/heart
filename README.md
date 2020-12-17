@@ -1,6 +1,6 @@
 # Heart 💜
 
-A high performance Lua web framework with a simple, powerful API
+A high performance Lua web server with a simple, powerful API
 
 ## Overview
 
@@ -18,6 +18,23 @@ that can store data both in memory and on disk.
 - Fast K/V store
 - Versioned API
 - Stable Lua 5.1 VM
+
+## Getting Started
+
+- Download the binary appropriate for your machine
+- Create a Lua file using the Heart API
+
+```Lua
+app = require('heart.v1')
+
+app.get('/:name', function(ctx)
+  return 'Hello, ' .. ctx.pathParams('name') .. '!'
+end)
+```
+
+- Start Heart and point it at your Lua `./heart main.lua`
+- `curl localhost:3333/world` to see the result
+- Congratulations you're running a wicked fast Lua server 🎊
 
 ## Caveats
 

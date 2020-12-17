@@ -2,17 +2,21 @@ package build
 
 import (
 	"log"
+	"sync"
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sosodev/heart/pool"
 )
 
+var (
+	// ContextMap is a mapping of *lua.State to *fiber.Ctx :)
+	ContextMap sync.Map
+)
+
 // Routes for the *fiber.App from the initial *lua.State
 //
 // TODO:
-// * Move switch sub-statements to a function that accepts the method (could be anonymous :o)
-// * Break out loop functionality for clarity?
 // * Take a closer look at error handling
 // *
 //
@@ -50,9 +54,8 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	}
 	defer statePool.Return(reqState)
 
-	// Bind the *fiber.Ctx to a global
-	reqState.PushGoStruct(ctx)
-	reqState.SetGlobal("_fiber_ctx")
+	// Update the context map to ensure the *lua.State maps to its current request
+	ContextMap.Store(reqState, ctx)
 
 	// load the callback
 	reqState.GetGlobal("app")
@@ -66,8 +69,8 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	// To which I would say: well yes, of course it could be and that would probably be more efficient
 	// But I want the API to look pretty and that would be kind of off putting for people who come from a more traditional web server
 	// Heart is kind of unique in the way that it could seemingly bind global state to a parallel request
-	// and that's just a little weird when our brains are wired to think statelessly I think 🤷
-	reqState.GetGlobal("ctx")
+	// and that's just a little weird when our brains are wired to think statelessly 🤷
+	reqState.GetGlobal("_heart_ctx")
 	err = reqState.Call(1, 1)
 	if err != nil {
 		return err

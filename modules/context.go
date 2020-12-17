@@ -5,6 +5,7 @@ import (
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
+	"github.com/sosodev/heart/build"
 )
 
 // LoadContext creates a module for request context
@@ -14,7 +15,7 @@ func LoadContext(state *lua.State) error {
 	state.Register("_pathParams", pathParams)
 
 	return state.DoString(`
-		package.preload['heart.context'] = function()
+		package.preload['heart.v1.context'] = function()
 			local context = {}
 
 			function context.redirect(path, code)
@@ -32,14 +33,20 @@ func LoadContext(state *lua.State) error {
 	`)
 }
 
+func ctx(state *lua.State) *fiber.Ctx {
+	fctx, ok := build.ContextMap.Load(state)
+	if !ok {
+		log.Fatal("missing *fiber.Ctx for request")
+	}
+
+	return fctx.(*fiber.Ctx)
+}
+
 func redirect(state *lua.State) int {
 	path := state.ToString(state.GetTop() - 1)
 	code := state.ToInteger(state.GetTop())
 
-	state.GetGlobal("_fiber_ctx")
-	fiberCtx := state.ToGoStruct(state.GetTop()).(*fiber.Ctx)
-
-	err := fiberCtx.Redirect(path, code)
+	err := ctx(state).Redirect(path, code)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,9 +57,6 @@ func redirect(state *lua.State) int {
 // binds to ctx.pathParams to dynamically bring *fiber.Ctx path params into the lua context
 func pathParams(state *lua.State) int {
 	key := state.ToString(state.GetTop())
-	state.GetGlobal("_fiber_ctx")
-	fiberCtx := state.ToGoStruct(state.GetTop()).(*fiber.Ctx)
-
-	state.PushString(fiberCtx.Params(key))
+	state.PushString(ctx(state).Params(key))
 	return 1
 }

@@ -1,5 +1,6 @@
-app = require('heart')
+app = require('heart.v1')
 
+-- This handler benchmarks at 320k requests a second on my machine :o
 app.get('/:name?', function(ctx)
   local name = ctx.pathParams('name')
 
@@ -11,5 +12,5 @@ app.get('/:name?', function(ctx)
 end)
 
 app.get('/world', function(ctx)
-  ctx.redirect('/')
+  return nil
 end)

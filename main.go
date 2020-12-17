@@ -17,7 +17,8 @@ func main() {
 		DisableStartupMessage: true,
 	})
 
-	statePool, err := pool.New(config.InitialPoolSize, func(nuState *lua.State) error {
+	statePool, err := pool.New(config, func(nuState *lua.State) error {
+		// TODO: considering reducing lib availibility in Lua
 		nuState.OpenLibs()
 
 		err := modules.LoadContext(nuState)

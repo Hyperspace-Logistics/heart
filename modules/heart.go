@@ -7,8 +7,8 @@ import (
 // LoadHeart preloads the heart module for use in the server
 func LoadHeart(state *lua.State) error {
 	return state.DoString(`
-		package.preload['heart'] = function() 
-			ctx = require('heart.context')
+		package.preload['heart.v1'] = function() 
+			_heart_ctx = require('heart.v1.context')
 
 			local heart = { routes = {} }
 
