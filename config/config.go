@@ -28,7 +28,7 @@ func NewConfig() *Config {
 
 	initialPoolSizeString := os.Getenv("INITIAL_POOL_SIZE")
 	if len(initialPoolSizeString) == 0 {
-		initialPoolSizeString = "32"
+		initialPoolSizeString = "8"
 	}
 
 	initialPoolSize, err := strconv.Atoi(initialPoolSizeString)
