@@ -21,12 +21,20 @@ func main() {
 		// TODO: considering reducing lib availibility in Lua
 		nuState.OpenLibs()
 
-		err := modules.LoadContext(nuState)
+		// Load modules to be used in the Lua code
+		// Unfortunately order does matter here
+		// Heart depends on context which depends on JSON
+		err := modules.LoadJSON(nuState)
 		if err != nil {
 			return err
 		}
 
-		err = modules.LoadHeart(nuState)
+		err = modules.LoadContext(nuState)
+		if err != nil {
+			return err
+		}
+
+		err = modules.LoadHeart(app, nuState)
 		if err != nil {
 			return err
 		}

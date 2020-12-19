@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -33,12 +34,27 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 
 		for state.Next(-2) != 0 {
 			method := state.ToString(-2)
+			handler := func(ctx *fiber.Ctx) error {
+				return handleRequest(ctx, method, route, statePool)
+			}
 
 			switch method {
 			case "get":
-				app.Get(route, func(ctx *fiber.Ctx) error {
-					return handleRequest(ctx, "get", route, statePool)
-				})
+				app.Get(route, handler)
+			case "head":
+				app.Head(route, handler)
+			case "post":
+				app.Post(route, handler)
+			case "put":
+				app.Put(route, handler)
+			case "delete":
+				app.Delete(route, handler)
+			case "options":
+				app.Options(route, handler)
+			case "trace":
+				app.Trace(route, handler)
+			case "patch":
+				app.Patch(route, handler)
 			}
 
 			state.Pop(1)
@@ -50,7 +66,8 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.Pool) error {
 	reqState, err := statePool.Take()
 	if err != nil {
-		return err
+		log.Println(err)
+		return fmt.Errorf("500 - Internal Server Error")
 	}
 	defer statePool.Return(reqState)
 
