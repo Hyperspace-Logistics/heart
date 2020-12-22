@@ -52,6 +52,16 @@ func LoadContext(state *lua.State) error {
 		return 0
 	})
 
+	state.Register("_body", func(state *lua.State) int {
+		state.PushString(string(ctx(state).Body()))
+		return 1
+	})
+
+	state.Register("_set_status", func(state *lua.State) int {
+		ctx(state).Status(state.ToInteger(state.GetTop()))
+		return 0
+	})
+
 	return state.DoString(`
 		package.preload['heart.v1.context'] = function()
 			local context = {}
@@ -78,6 +88,12 @@ func LoadContext(state *lua.State) error {
 			-- set a header with the given K/V
 			function context.set(key, value)
 				_set(key, value)
+				return context
+			end
+
+			function context.status(code)
+				_set_status(code)
+				return context
 			end
 
 			-- converts the given table to a JSON string and returns it
@@ -85,6 +101,30 @@ func LoadContext(state *lua.State) error {
 			function context.json(table)
 				_set("Content-Type", "application/json")
 				return json.encode(table)
+			end
+
+			function context.body()
+				local body = { value = _body() }
+
+				function body.string()
+					return body.value
+				end
+
+				function body.json()
+					if body.value == '' then
+						return {}
+					end
+
+					local success, decoded = unsafe_pcall(json.decode, body.value)
+
+					if not success then
+						return {}
+					end
+
+					return decoded
+				end
+
+				return body
 			end
 
 			return context

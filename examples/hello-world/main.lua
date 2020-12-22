@@ -12,5 +12,6 @@ app.get('/:name?', function(ctx)
 end)
 
 app.get('/world', function(ctx)
+  ctx.redirect('/')
   return nil
 end)

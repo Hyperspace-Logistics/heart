@@ -69,7 +69,14 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 		log.Println(err)
 		return fmt.Errorf("500 - Internal Server Error")
 	}
-	defer statePool.Return(reqState)
+	releaseState := false
+	defer func() {
+		if releaseState {
+			reqState.Close()
+		} else {
+			statePool.Return(reqState)
+		}
+	}()
 
 	// Update the context map to ensure the *lua.State maps to its current request
 	ContextMap.Store(reqState, ctx)
@@ -90,7 +97,8 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	reqState.GetGlobal("_heart_ctx")
 	err = reqState.Call(1, 1)
 	if err != nil {
-		return err
+		releaseState = true
+		return fmt.Errorf("lua error: %s", err)
 	}
 
 	response := reqState.ToString(reqState.GetTop())

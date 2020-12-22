@@ -10,6 +10,10 @@ import (
 	"github.com/sosodev/heart/config"
 )
 
+// TODO: consider ways to make the pool self-optimizing
+// an ideal pool would be able to provision just enough state for peak demand
+// without taking the performance penatly of doing it JIT
+
 // Pool is a pool of *lua.State
 type Pool struct {
 	config      *config.Config
@@ -132,7 +136,7 @@ func (p *Pool) Return(state *lua.State) {
 
 			nuState, err := p.newState()
 			if err != nil {
-				log.Printf("failed to allocate new state: %s", err)
+				log.Printf("failed to allocate new state: %s\n", err)
 			}
 
 			p.stack = append(p.stack, nuState)

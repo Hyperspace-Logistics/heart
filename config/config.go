@@ -9,6 +9,7 @@ import (
 // Config for the application
 type Config struct {
 	Path            string
+	DBPath          string
 	Version         string
 	InitialPoolSize int
 	Port            string
@@ -20,6 +21,11 @@ func NewConfig() *Config {
 		log.Fatal("usage: heart [path]")
 	}
 	path := os.Args[1]
+
+	dbPath := os.Getenv("DB_PATH")
+	if len(dbPath) == 0 {
+		dbPath = "./.heart_db"
+	}
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
@@ -41,5 +47,6 @@ func NewConfig() *Config {
 		Version:         "0.1",
 		InitialPoolSize: initialPoolSize,
 		Port:            port,
+		DBPath:          dbPath,
 	}
 }

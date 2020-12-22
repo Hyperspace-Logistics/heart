@@ -34,6 +34,16 @@ func main() {
 			return err
 		}
 
+		err = modules.LoadKVMemory(nuState)
+		if err != nil {
+			return err
+		}
+
+		err = modules.LoadKVDisk(nuState)
+		if err != nil {
+			return err
+		}
+
 		err = modules.LoadHeart(app, nuState)
 		if err != nil {
 			return err
