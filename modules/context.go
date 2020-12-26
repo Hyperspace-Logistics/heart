@@ -71,8 +71,7 @@ func LoadContext(state *lua.State) error {
 			-- status is optional and defaults to 302
 			function context.redirect(path, status)
 				status = status or 302
-
-				_redirect(path, code)
+				_redirect(path, status)
 			end
 
 			-- get the value of the given path key
