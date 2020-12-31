@@ -2,9 +2,11 @@ package kv
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/dgraph-io/badger/v2"
+	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/config"
 )
 
@@ -28,11 +30,34 @@ var (
 	diskSerialLock   sync.Mutex
 )
 
+// LogWrapper for translating badger logs  to zerolog logs
+type LogWrapper struct{}
+
+// Errorf emits a formatted badger error
+func (*LogWrapper) Errorf(s string, i ...interface{}) {
+	log.Error().Msgf(strings.TrimSuffix(s, "\n"), i...)
+}
+
+// Warningf emits a formatted badger warning
+func (*LogWrapper) Warningf(s string, i ...interface{}) {
+	log.Warn().Msgf(strings.TrimSuffix(s, "\n"), i...)
+}
+
+// Infof emits formatted badger info
+func (*LogWrapper) Infof(s string, i ...interface{}) {
+	log.Info().Msgf(strings.TrimSuffix(s, "\n"), i...)
+}
+
+// Debugf emits formatted badger debugging info
+func (*LogWrapper) Debugf(s string, i ...interface{}) {
+	log.Debug().Msgf(strings.TrimSuffix(s, "\n"), i...)
+}
+
 // GetMemoryStore does what it says on the tin
 func GetMemoryStore() (*KV, error) {
 	var err error
 	if memoryDB == nil {
-		memoryDB, err = badger.Open(badger.DefaultOptions("").WithInMemory(true))
+		memoryDB, err = badger.Open(badger.DefaultOptions("").WithInMemory(true).WithLogger(&LogWrapper{}))
 		if err != nil {
 			return nil, err
 		}
@@ -50,7 +75,7 @@ func GetDiskStore() (*KV, error) {
 
 	var err error
 	if diskDB == nil {
-		diskDB, err = badger.Open(badger.DefaultOptions(config.DBPath).WithSyncWrites(config.DBSyncWrites))
+		diskDB, err = badger.Open(badger.DefaultOptions(config.DBPath).WithSyncWrites(config.DBSyncWrites).WithLogger(&LogWrapper{}))
 		if err != nil {
 			return nil, err
 		}

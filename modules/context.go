@@ -1,10 +1,9 @@
 package modules
 
 import (
-	"log"
-
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/las"
 )
 
@@ -14,7 +13,7 @@ func LoadContext(state *lua.State) error {
 	ctx := func(state *lua.State) *fiber.Ctx {
 		as, ok := las.Get(state)
 		if !ok {
-			log.Fatal("failed to load *las.AssociatedState for request")
+			log.Fatal().Msg("failed to load *las.AssociatedState for request")
 		}
 
 		return as.Ctx
@@ -26,7 +25,7 @@ func LoadContext(state *lua.State) error {
 
 		err := ctx(state).Redirect(path, code)
 		if err != nil {
-			log.Fatal(err)
+			log.Error().Err(err).Msg("failed to redirect")
 		}
 
 		return 0

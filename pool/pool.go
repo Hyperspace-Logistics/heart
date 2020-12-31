@@ -2,11 +2,11 @@ package pool
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 
 	"github.com/aarzilli/golua/lua"
+	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/config"
 )
 
@@ -136,7 +136,7 @@ func (p *Pool) Return(state *lua.State) {
 
 			nuState, err := p.newState()
 			if err != nil {
-				log.Printf("failed to allocate new state: %s\n", err)
+				log.Fatal().Err(err).Msg("failed to allocate new state")
 			}
 
 			p.stack = append(p.stack, nuState)
