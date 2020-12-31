@@ -13,6 +13,7 @@ type Config struct {
 	Version         string
 	InitialPoolSize int
 	Port            string
+	DBSyncWrites    bool
 }
 
 // NewConfig gets you a new *Config
@@ -42,11 +43,14 @@ func NewConfig() *Config {
 		log.Fatal("invalid env variable INITIAL_POOL_SIZE: should be an integer")
 	}
 
+	dbSyncWrites := os.Getenv("DB_SYNC_WRITES") != "false"
+
 	return &Config{
 		Path:            path,
 		Version:         "0.1",
 		InitialPoolSize: initialPoolSize,
 		Port:            port,
 		DBPath:          dbPath,
+		DBSyncWrites:    dbSyncWrites,
 	}
 }

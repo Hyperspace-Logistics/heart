@@ -5,19 +5,19 @@ import (
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
-	"github.com/sosodev/heart/build"
+	"github.com/sosodev/heart/las"
 )
 
 // LoadContext creates a module for request context
 // Functionally it just provides cute bindings to some go functions that can appropriately bridge lua<->fiber
 func LoadContext(state *lua.State) error {
 	ctx := func(state *lua.State) *fiber.Ctx {
-		fctx, ok := build.ContextMap.Load(state)
+		as, ok := las.Get(state)
 		if !ok {
-			log.Fatal("failed to load *fiber.Ctx for request")
+			log.Fatal("failed to load *las.AssociatedState for request")
 		}
 
-		return fctx.(*fiber.Ctx)
+		return as.Ctx
 	}
 
 	state.Register("_redirect", func(state *lua.State) int {

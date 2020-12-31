@@ -3,16 +3,11 @@ package build
 import (
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
+	"github.com/sosodev/heart/las"
 	"github.com/sosodev/heart/pool"
-)
-
-var (
-	// ContextMap is a mapping of *lua.State to *fiber.Ctx :)
-	ContextMap sync.Map
 )
 
 // Routes for the *fiber.App from the initial *lua.State
@@ -78,8 +73,14 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 		}
 	}()
 
-	// Update the context map to ensure the *lua.State maps to its current request
-	ContextMap.Store(reqState, ctx)
+	// Associate the *fiber.Ctx with the request *lua.State
+	err = las.Update(reqState, func(as *las.AssociatedState) error {
+		as.Ctx = ctx
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update associated state for request: %s", err)
+	}
 
 	// load the callback
 	reqState.GetGlobal("app")

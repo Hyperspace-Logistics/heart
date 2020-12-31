@@ -2,27 +2,113 @@ package modules
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"text/template"
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/sosodev/heart/kv"
+	"github.com/sosodev/heart/las"
 )
 
 // LoadKV modules into Lua
 func LoadKV(state *lua.State) error {
+	// Associate the databases with the state
+	err := las.Update(state, func(as *las.AssociatedState) error {
+		memoryStore, err := kv.GetMemoryStore()
+		if err != nil {
+			return err
+		}
+		as.MemoryStore = memoryStore
+
+		diskStore, err := kv.GetDiskStore()
+		if err != nil {
+			return err
+		}
+		as.DiskStore = diskStore
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to associate *kv.KV: %s", err)
+	}
+
+	associatedStore := func(medium string) *kv.KV {
+		switch medium {
+		case "disk":
+			as, ok := las.Get(state)
+			if !ok {
+				log.Fatal("failed to retrieve disk store for state from las")
+			}
+			return as.DiskStore
+		case "memory":
+			as, ok := las.Get(state)
+			if !ok {
+				log.Fatal("failed to retrieve memory store for state from las")
+			}
+			return as.MemoryStore
+		}
+
+		log.Fatal("incorrect medium for fetching associated store")
+		return nil
+	}
+
 	kvGet := func(store *kv.KV) func(*lua.State) int {
 		return func(state *lua.State) int {
 			key := state.ToString(state.GetTop())
 
 			value, err := store.Get(key)
 			if err != nil {
-				log.Printf("kv.get failed for key '%s': %s", key, err)
+				log.Printf("kv.get failed for key '%s': %s\n", key, err)
 				state.PushString("")
 				return 1
 			}
 
 			state.PushString(value)
+
+			return 1
+		}
+	}
+
+	kvListKeys := func(store *kv.KV) func(*lua.State) int {
+		return func(state *lua.State) int {
+			limit := state.ToInteger(state.GetTop())
+
+			results, err := store.ListKeys(limit)
+			if err != nil {
+				log.Printf("kv.listKeys failed: %s\n", err)
+			}
+
+			state.NewTable()
+			for i, result := range results {
+				state.PushString(result)
+				state.RawSeti(state.GetTop()-1, i+1)
+			}
+
+			return 1
+		}
+	}
+
+	kvListPairs := func(store *kv.KV) func(*lua.State) int {
+		return func(state *lua.State) int {
+			limit := state.ToInteger(state.GetTop())
+
+			results, err := store.ListPairs(limit)
+			if err != nil {
+				log.Printf("kv.listPairs failed: %s\n", err)
+			}
+
+			state.NewTable()
+			for i, result := range results {
+				state.NewTable()
+				state.PushString(result.Key)
+				state.SetField(state.GetTop()-1, "key")
+
+				state.PushString(result.Value)
+				state.SetField(state.GetTop()-1, "value")
+
+				state.RawSeti(state.GetTop()-1, i+1)
+			}
 
 			return 1
 		}
@@ -34,7 +120,7 @@ func LoadKV(state *lua.State) error {
 
 			value, err := store.TransactionGet(key)
 			if err != nil {
-				log.Printf("store.get failed for key '%s': %s", key, err)
+				log.Printf("store.get failed for key '%s': %s\n", key, err)
 				state.PushString("")
 				return 1
 			}
@@ -52,7 +138,20 @@ func LoadKV(state *lua.State) error {
 
 			err := store.TransactionSet(key, value)
 			if err != nil {
-				log.Printf("store set failed for K/V pair (%s : %s): %s", key, value, err)
+				log.Printf("store.set failed for K/V pair (%s : %s): %s\n", key, value, err)
+			}
+
+			return 0
+		}
+	}
+
+	storeDelete := func(store *kv.KV) func(*lua.State) int {
+		return func(state *lua.State) int {
+			key := state.ToString(state.GetTop())
+
+			err := store.TransactionDelete(key)
+			if err != nil {
+				log.Printf("store.delete failed for key '%s': %s\n", key, err)
 			}
 
 			return 0
@@ -63,7 +162,7 @@ func LoadKV(state *lua.State) error {
 		return func(state *lua.State) int {
 			err := store.StartTransaction()
 			if err != nil {
-				log.Printf("kv.transaction failed to start: %s", err)
+				log.Fatalf("kv.transaction failed to start: %s\n", err)
 			}
 
 			return 0
@@ -74,34 +173,60 @@ func LoadKV(state *lua.State) error {
 		return func(state *lua.State) int {
 			err := store.EndTransaction()
 			if err != nil {
-				log.Printf("kv.transaction failed to commit: %s", err)
+				log.Printf("kv.transaction failed to commit: %s\n", err)
 			}
 
 			return 0
 		}
 	}
 
-	memoryStore, err := kv.GetMemoryStore()
-	if err != nil {
-		return err
+	startSerialTransaction := func(store *kv.KV) func(*lua.State) int {
+		return func(state *lua.State) int {
+			err := store.StartSerialTransaction()
+			if err != nil {
+				log.Fatalf("kv.serialTransasction failed to start: %s\n", err)
+			}
+
+			return 0
+		}
 	}
+
+	endSerialTransaction := func(store *kv.KV) func(*lua.State) int {
+		return func(state *lua.State) int {
+			err := store.EndSerialTransaction()
+			if err != nil {
+				log.Printf("kv.serialTransaction failed to commit: %s\n", err)
+			}
+
+			return 0
+		}
+	}
+
+	memoryStore := associatedStore("memory")
 
 	state.Register("_memory_get", kvGet(memoryStore))
+	state.Register("_memory_list_keys", kvListKeys(memoryStore))
+	state.Register("_memory_list_pairs", kvListPairs(memoryStore))
 	state.Register("_memory_transaction_get", storeGet(memoryStore))
 	state.Register("_memory_transaction_set", storeSet(memoryStore))
+	state.Register("_memory_transaction_delete", storeDelete(memoryStore))
 	state.Register("_start_memory_transaction", startTransaction(memoryStore))
 	state.Register("_end_memory_transaction", endTransaction(memoryStore))
+	state.Register("_start_memory_serial_transaction", startSerialTransaction(memoryStore))
+	state.Register("_end_memory_serial_transaction", endSerialTransaction(memoryStore))
 
-	diskStore, err := kv.GetDiskStore()
-	if err != nil {
-		return err
-	}
+	diskStore := associatedStore("disk")
 
 	state.Register("_disk_get", kvGet(diskStore))
+	state.Register("_disk_list_keys", kvListKeys(diskStore))
+	state.Register("_disk_list_pairs", kvListPairs(diskStore))
 	state.Register("_disk_transaction_get", storeGet(diskStore))
 	state.Register("_disk_transaction_set", storeSet(diskStore))
+	state.Register("_disk_transaction_delete", storeDelete(diskStore))
 	state.Register("_start_disk_transaction", startTransaction(diskStore))
 	state.Register("_end_disk_transaction", endTransaction(diskStore))
+	state.Register("_start_disk_serial_transaction", startSerialTransaction(diskStore))
+	state.Register("_end_disk_serial_transaction", endSerialTransaction(diskStore))
 
 	kvTemplate := template.Must(template.New("").Parse(`
 		package.preload['heart.v1.kv.{{.medium}}'] = function()
@@ -112,18 +237,36 @@ func LoadKV(state *lua.State) error {
 				return _{{.medium}}_get(key)
 			end
 
+			function kv.listKeys(limit)
+				return _{{.medium}}_list_keys(limit)
+			end
+
+			function kv.listPairs(limit)
+				return _{{.medium}}_list_pairs(limit)
+			end
+
 			function store.get(key)
 				return _{{.medium}}_transaction_get(key)
 			end
 
 			function store.set(key, value)
-				return _{{.medium}}_transaction_set(key, value)
+				_{{.medium}}_transaction_set(key, value)
+			end
+
+			function store.delete(key)
+				_{{.medium}}_transaction_delete(key)
 			end
 
 			function kv.transaction(callback)
 				_start_{{.medium}}_transaction()
 				callback(store)
 				_end_{{.medium}}_transaction()
+			end
+
+			function kv.serialTransaction(callback)
+				_start_{{.medium}}_serial_transaction()
+				callback(store)
+				_end_{{.medium}}_serial_transaction()
 			end
 
 			return kv

@@ -10,46 +10,56 @@ import (
 
 // KV store for both in-memory and on-disk usage
 type KV struct {
-	db              *badger.DB
-	transaction     *badger.Txn
-	transactionLock sync.Mutex
+	medium      string
+	db          *badger.DB
+	transaction *badger.Txn
+}
+
+// Pair you know
+type Pair struct {
+	Key   string
+	Value string
 }
 
 var (
-	memoryKV *KV
-	diskKV   *KV
+	memoryDB         *badger.DB
+	memorySerialLock sync.Mutex
+	diskDB           *badger.DB
+	diskSerialLock   sync.Mutex
 )
 
 // GetMemoryStore does what it says on the tin
 func GetMemoryStore() (*KV, error) {
-	if memoryKV == nil {
-		memoryDB, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
+	var err error
+	if memoryDB == nil {
+		memoryDB, err = badger.Open(badger.DefaultOptions("").WithInMemory(true))
 		if err != nil {
 			return nil, err
 		}
-
-		memoryKV = &KV{
-			db: memoryDB,
-		}
 	}
 
-	return memoryKV, nil
+	return &KV{
+		medium: "memory",
+		db:     memoryDB,
+	}, nil
 }
 
 // GetDiskStore does what it says on the tin
 func GetDiskStore() (*KV, error) {
-	if diskKV == nil {
-		diskDB, err := badger.Open(badger.DefaultOptions(config.NewConfig().DBPath).WithSyncWrites(false))
+	config := config.NewConfig()
+
+	var err error
+	if diskDB == nil {
+		diskDB, err = badger.Open(badger.DefaultOptions(config.DBPath).WithSyncWrites(config.DBSyncWrites))
 		if err != nil {
 			return nil, err
 		}
-
-		diskKV = &KV{
-			db: diskDB,
-		}
 	}
 
-	return diskKV, nil
+	return &KV{
+		medium: "disk",
+		db:     diskDB,
+	}, nil
 }
 
 // Get the value for the given key without a transcation or error
@@ -79,9 +89,76 @@ func (kv *KV) Get(key string) (string, error) {
 	return value, err
 }
 
+// ListKeys up to the limit specified or error
+func (kv *KV) ListKeys(limit int) ([]string, error) {
+	results := make([]string, 0)
+
+	count := 0
+	err := kv.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			if count >= limit {
+				break
+			}
+
+			results = append(results, string(it.Item().Key()))
+			count++
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// ListPairs up to the limit specified or error
+func (kv *KV) ListPairs(limit int) ([]Pair, error) {
+	results := make([]Pair, 0)
+
+	count := 0
+	err := kv.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			if count >= limit {
+				break
+			}
+
+			item := it.Item()
+			value := ""
+			err := it.Item().Value(func(val []byte) error {
+				value = string(val)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+
+			results = append(results, Pair{
+				Key:   string(item.Key()),
+				Value: value,
+			})
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // StartTransaction or error
 func (kv *KV) StartTransaction() error {
-	kv.transactionLock.Lock()
 	kv.transaction = kv.db.NewTransaction(true)
 
 	return nil
@@ -89,12 +166,42 @@ func (kv *KV) StartTransaction() error {
 
 // EndTransaction or error
 func (kv *KV) EndTransaction() error {
+	defer kv.transaction.Discard()
+
 	err := kv.transaction.Commit()
 	if err != nil {
 		return err
 	}
 
-	kv.transactionLock.Unlock()
+	return nil
+}
+
+// StartSerialTransaction or error
+func (kv *KV) StartSerialTransaction() error {
+	if kv.medium == "disk" {
+		diskSerialLock.Lock()
+	} else if kv.medium == "memory" {
+		memorySerialLock.Lock()
+	}
+
+	kv.transaction = kv.db.NewTransaction(true)
+	return nil
+}
+
+// EndSerialTransaction or error
+func (kv *KV) EndSerialTransaction() error {
+	defer kv.transaction.Discard()
+	if kv.medium == "disk" {
+		defer diskSerialLock.Unlock()
+	} else if kv.medium == "memory" {
+		defer memorySerialLock.Unlock()
+	}
+
+	err := kv.transaction.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -122,6 +229,16 @@ func (kv *KV) TransactionGet(key string) (string, error) {
 // TransactionSet the KV pair or error as part of a transaction
 func (kv *KV) TransactionSet(key, value string) error {
 	err := kv.transaction.Set([]byte(key), []byte(value))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// TransactionDelete the given key or error as part of a transaction
+func (kv *KV) TransactionDelete(key string) error {
+	err := kv.transaction.Delete([]byte(key))
 	if err != nil {
 		return err
 	}

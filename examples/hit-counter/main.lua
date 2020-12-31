@@ -3,7 +3,7 @@ local kv = require('heart.v1.kv.memory')
 
 local function get_hits()
   local hits = ''
-  kv.transaction(function(store)
+  kv.serialTransaction(function(store)
     hits = store.get('hits')
     if hits == '' then
       hits = '0'
