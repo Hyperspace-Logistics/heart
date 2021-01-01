@@ -13,6 +13,7 @@ import (
 // AssociatedState is the a collection of state that gets associated with *lua.State
 type AssociatedState struct {
 	Ctx         *fiber.Ctx
+	TakeCount   int
 	MemoryStore *kv.KV
 	DiskStore   *kv.KV
 }
@@ -29,6 +30,11 @@ func Get(state *lua.State) (*AssociatedState, bool) {
 	}
 
 	return as.(*AssociatedState), ok
+}
+
+// Free the *AssociatedState for the given *lua.State
+func Free(state *lua.State) {
+	asm.Delete(state)
 }
 
 func getOrInit(state *lua.State) *AssociatedState {

@@ -8,6 +8,7 @@ import (
 	"github.com/aarzilli/golua/lua"
 	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/config"
+	"github.com/sosodev/heart/las"
 )
 
 // TODO: consider ways to make the pool self-optimizing
@@ -21,7 +22,6 @@ type Pool struct {
 	top         int
 	lock        sync.Mutex
 	initializer func(*lua.State) error
-	takeCount   map[*lua.State]int
 }
 
 // New gets you a *Pool of fully initialized *lua.State
@@ -33,7 +33,6 @@ func New(config *config.Config, initializer func(*lua.State) error) (*Pool, erro
 		stack:       make([]*lua.State, config.InitialPoolSize),
 		top:         config.InitialPoolSize - 1,
 		initializer: initializer,
-		takeCount:   make(map[*lua.State]int),
 	}
 
 	for i := 0; i < config.InitialPoolSize; i++ {
@@ -115,7 +114,13 @@ func (p *Pool) Take() (state *lua.State, err error) {
 		state = p.randomTake()
 	}
 
-	p.takeCount[state] = p.takeCount[state] + 1
+	err = las.Update(state, func(as *las.AssociatedState) error {
+		as.TakeCount++
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return state, nil
 }
@@ -125,14 +130,18 @@ func (p *Pool) Return(state *lua.State) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if p.takeCount[state] > 10000 {
-		go func() {
-			state.Close()
+	as, ok := las.Get(state)
+	if !ok {
+		log.Fatal().Msg("failed to get associated state on pool return")
+	}
 
+	if as.TakeCount > 10000 {
+		go func() {
 			p.lock.Lock()
 			defer p.lock.Unlock()
 
-			delete(p.takeCount, state)
+			state.Close()
+			las.Free(state)
 
 			nuState, err := p.newState()
 			if err != nil {
@@ -154,5 +163,6 @@ func (p *Pool) Return(state *lua.State) {
 func (p *Pool) Cleanup() {
 	for _, state := range p.stack {
 		state.Close()
+		las.Free(state)
 	}
 }
