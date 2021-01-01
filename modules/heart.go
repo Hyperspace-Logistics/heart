@@ -1,8 +1,14 @@
 package modules
 
 import (
+	"sync"
+
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
+)
+
+var (
+	once sync.Once
 )
 
 // LoadHeart preloads the heart module for use in the server
@@ -11,7 +17,9 @@ func LoadHeart(app *fiber.App, state *lua.State) error {
 		route := state.ToString(state.GetTop() - 1)
 		filepath := state.ToString(state.GetTop())
 
-		app.Static(route, filepath)
+		once.Do(func() {
+			app.Static(route, filepath)
+		})
 
 		return 0
 	})
@@ -64,6 +72,10 @@ func LoadHeart(app *fiber.App, state *lua.State) error {
 
 			function heart.static(route, filepath)
 				_static(route, filepath)
+			end
+
+			function heart.notfound(callback)
+				registerCallback('_not_found', '/', callback)
 			end
 
 			return heart

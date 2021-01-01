@@ -23,6 +23,11 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 	}
 	defer statePool.Return(state)
 
+	// the 404 handler needs to be registered last
+	// so we just take a reference to it when found and register if after everything else
+	// this does mean that only a single handler could be used but that's ideal anyway
+	var notFoundHandler func(*fiber.Ctx) error
+
 	loopRoutes(state, func(route string) {
 		state.PushNil()
 		defer state.Pop(1)
@@ -32,6 +37,8 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 			handler := func(ctx *fiber.Ctx) error {
 				return handleRequest(ctx, method, route, statePool)
 			}
+
+			log.Debug().Str("method", method).Str("route", route).Msg("Registering handler")
 
 			switch method {
 			case "get":
@@ -50,11 +57,18 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 				app.Trace(route, handler)
 			case "patch":
 				app.Patch(route, handler)
+			case "_not_found":
+				notFoundHandler = handler
 			}
 
 			state.Pop(1)
 		}
 	})
+
+	// register the 404 handler if found
+	if notFoundHandler != nil {
+		app.Use(notFoundHandler)
+	}
 }
 
 // handle an incoming request with Lua

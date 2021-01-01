@@ -5,10 +5,10 @@ app.get('/:name?', function(ctx)
   local name = ctx.pathParams('name')
 
   if name == '' then
-    return 'Hello, world!'
-  else
-    return 'Hello, ' .. name .. '!'
+    name = 'world'
   end
+
+  return ctx.json({hello = name})
 end)
 
 app.get('/world', function(ctx)

@@ -16,7 +16,15 @@ import (
 )
 
 func main() {
+	// initial logging setup
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	if os.Getenv("PROD") != "prod" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	}
+
 	config := config.NewConfig()
+	zerolog.SetGlobalLevel(config.LogLevel)
+
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
@@ -39,16 +47,6 @@ func main() {
 		log.Info().Int("status", c.Response().StatusCode()).Str("method", c.Method()).Str("path", c.Path()).Str("response_time", responseTime.String()).Msg("Request")
 		return nil
 	})
-
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.SetGlobalLevel(config.LogLevel)
-	nonBlockingWriter := diode.NewWriter(os.Stdout, 5000, 10*time.Millisecond, func(missed int) {})
-
-	if config.Production {
-		log.Logger = log.Output(nonBlockingWriter)
-	} else {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: nonBlockingWriter})
-	}
 
 	statePool, err := pool.New(config, func(nuState *lua.State) error {
 		// TODO: considering reducing lib availibility in Lua
@@ -88,6 +86,16 @@ func main() {
 	// It's worth noting that this means that app routes can't be built up dynamically
 	// But that's probably not a good idea anyway and implementing it would probably kill performance or me :(
 	build.Routes(app, statePool)
+
+	// swap out the log's writer for a non-blocking one
+	// this greatly increases logging throughput
+	nonBlockingWriter := diode.NewWriter(os.Stdout, 1000, 0, func(missed int) {})
+	defer nonBlockingWriter.Close()
+	if config.Production {
+		log.Logger = log.Output(nonBlockingWriter)
+	} else {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: nonBlockingWriter})
+	}
 
 	log.Info().Str("port", config.Port).Msg("Heart is online 💜")
 	log.Fatal().Err(app.Listen(":" + config.Port)).Msg("App failed to run")
