@@ -87,6 +87,20 @@ func GetDiskStore() (*KV, error) {
 	}, nil
 }
 
+// CloseStores closes the stores
+func CloseStores() {
+	if diskDB != nil {
+		if err := diskDB.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close disk store")
+		}
+	}
+	if memoryDB != nil {
+		if err := memoryDB.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close memory store")
+		}
+	}
+}
+
 // Get the value for the given key without a transcation or error
 func (kv *KV) Get(key string) (string, error) {
 	var value string

@@ -102,44 +102,39 @@ func (p *Pool) newState() (*lua.State, error) {
 // Take a *lua.State from the pool
 // Provisions and initializes a new one if the pool is empty
 func (p *Pool) Take() (state *lua.State, err error) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	if p.empty() {
-		state, err = p.newState()
-		if err != nil {
-			return nil, err
+	updateStateTakeCount := func() {
+		as, ok := las.Get(state)
+		if ok {
+			as.IncrementTakeCount()
 		}
-	} else {
-		state = p.randomTake()
 	}
 
-	err = las.Update(state, func(as *las.AssociatedState) error {
-		as.TakeCount++
-		return nil
-	})
+	p.lock.Lock()
+	if !p.empty() {
+		state = p.randomTake()
+		p.lock.Unlock()
+		updateStateTakeCount()
+		return state, nil
+	}
+	p.lock.Unlock()
+
+	state, err = p.newState()
 	if err != nil {
 		return nil, err
 	}
-
+	updateStateTakeCount()
 	return state, nil
 }
 
 // Return a *lua.State back to the pool
 func (p *Pool) Return(state *lua.State) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	as, ok := las.Get(state)
 	if !ok {
 		log.Fatal().Msg("failed to get associated state on pool return")
 	}
 
-	if as.TakeCount > 10000 {
+	if as.GetTakeCount() > 10000 {
 		go func() {
-			p.lock.Lock()
-			defer p.lock.Unlock()
-
 			state.Close()
 			las.Free(state)
 
@@ -148,15 +143,19 @@ func (p *Pool) Return(state *lua.State) {
 				log.Fatal().Err(err).Msg("failed to allocate new state")
 			}
 
+			p.lock.Lock()
 			p.stack = append(p.stack, nuState)
 			p.top++
+			p.lock.Unlock()
 		}()
 
 		return
 	}
 
+	p.lock.Lock()
 	p.stack = append(p.stack, state)
 	p.top++
+	p.lock.Unlock()
 }
 
 // Cleanup the pool and all of its state

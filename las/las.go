@@ -4,6 +4,7 @@ package las
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
@@ -13,7 +14,7 @@ import (
 // AssociatedState is the a collection of state that gets associated with *lua.State
 type AssociatedState struct {
 	Ctx         *fiber.Ctx
-	TakeCount   int
+	TakeCount   int32
 	MemoryStore *kv.KV
 	DiskStore   *kv.KV
 }
@@ -21,6 +22,16 @@ type AssociatedState struct {
 var (
 	asm sync.Map
 )
+
+// GetTakeCount atomically
+func (as *AssociatedState) GetTakeCount() int32 {
+	return atomic.LoadInt32(&as.TakeCount)
+}
+
+// IncrementTakeCount atomically
+func (as *AssociatedState) IncrementTakeCount() {
+	atomic.AddInt32(&as.TakeCount, 1)
+}
 
 // Get the *AssociatedState for the given *lua.State or a false second return value if not found
 func Get(state *lua.State) (*AssociatedState, bool) {

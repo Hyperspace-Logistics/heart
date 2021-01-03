@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/build"
 	"github.com/sosodev/heart/config"
+	"github.com/sosodev/heart/kv"
 	"github.com/sosodev/heart/modules"
 	"github.com/sosodev/heart/pool"
 )
@@ -81,6 +82,7 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to initialize lua state")
 	}
 	defer statePool.Cleanup()
+	defer kv.CloseStores()
 
 	// This function grabs one of the initialStates from the pool to build up the fiber routes
 	// It's worth noting that this means that app routes can't be built up dynamically
@@ -89,7 +91,7 @@ func main() {
 
 	// swap out the log's writer for a non-blocking one
 	// this greatly increases logging throughput
-	nonBlockingWriter := diode.NewWriter(os.Stdout, 1000, 0, func(missed int) {})
+	nonBlockingWriter := diode.NewWriter(os.Stdout, 10000, 100*time.Microsecond, func(missed int) {})
 	defer nonBlockingWriter.Close()
 	if config.Production {
 		log.Logger = log.Output(nonBlockingWriter)
