@@ -3,9 +3,12 @@ package modules
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"text/template"
+	"time"
 
 	"github.com/aarzilli/golua/lua"
+	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/kv"
 	"github.com/sosodev/heart/las"
@@ -228,6 +231,12 @@ func LoadKV(state *lua.State) error {
 	state.Register("_start_disk_serial_transaction", startSerialTransaction(diskStore))
 	state.Register("_end_disk_serial_transaction", endSerialTransaction(diskStore))
 
+	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
+	state.Register("_generate_ulid", func(state *lua.State) int {
+		state.PushString(ulid.MustNew(ulid.Timestamp(time.Now()), entropy).String())
+		return 1
+	})
+
 	kvTemplate := template.Must(template.New("").Parse(`
 		package.preload['heart.v1.kv.{{.medium}}'] = function()
 			local kv = {}
@@ -243,6 +252,10 @@ func LoadKV(state *lua.State) error {
 
 			function kv.listPairs(limit)
 				return _{{.medium}}_list_pairs(limit)
+			end
+			
+			function kv.ulid()
+				return _generate_ulid()
 			end
 
 			function store.get(key)

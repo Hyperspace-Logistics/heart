@@ -1,6 +1,8 @@
 app = require('heart.v1')
 
--- This handler benchmarks at 320k requests a second on my machine :o
+-- This handler benchmarks at 270k requests a second on my machine :o
+-- with an average latency of 183 microseconds
+-- max request latency is 18 milliseconds and I suspect most of that is GC pause
 app.get('/:name?', function(ctx)
   local name = ctx.pathParams('name')
 

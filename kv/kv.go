@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/rs/zerolog/log"
@@ -78,6 +79,21 @@ func GetDiskStore() (*KV, error) {
 		diskDB, err = badger.Open(badger.DefaultOptions(config.DBPath).WithSyncWrites(config.DBSyncWrites).WithLogger(&LogWrapper{}))
 		if err != nil {
 			return nil, err
+		}
+
+		if !config.DBSyncWrites {
+			syncInterval := time.NewTicker(100 * time.Millisecond)
+			go func() {
+				for {
+					select {
+					case <-syncInterval.C:
+						err = diskDB.Sync()
+						if err != nil {
+							log.Error().Err(err).Msg("Failed to sync database")
+						}
+					}
+				}
+			}()
 		}
 	}
 

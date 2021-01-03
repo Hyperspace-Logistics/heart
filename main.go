@@ -95,8 +95,6 @@ func main() {
 	defer nonBlockingWriter.Close()
 	if config.Production {
 		log.Logger = log.Output(nonBlockingWriter)
-	} else {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: nonBlockingWriter})
 	}
 
 	log.Info().Str("port", config.Port).Msg("Heart is online 💜")
