@@ -4,7 +4,7 @@ app = require('heart.v1')
 -- with an average latency of 183 microseconds
 -- max request latency is 18 milliseconds and I suspect most of that is GC pause
 app.get('/:name?', function(ctx)
-  local name = ctx.pathParams('name')
+  local name = ctx.pathParam('name')
 
   if name == '' then
     name = 'world'
