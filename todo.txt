@@ -1,4 +1,3 @@
 - create integration tests that double as performance regression tests
-- finishing covering most common use cases of context api
 - dogfood
 - release v0.1?

@@ -6,6 +6,7 @@ import (
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
+	"github.com/sosodev/heart/config"
 	"github.com/sosodev/heart/las"
 	"github.com/sosodev/heart/pool"
 )
@@ -73,10 +74,17 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 
 // handle an incoming request with Lua
 func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.Pool) error {
+	config := config.NewConfig()
+
 	reqState, err := statePool.Take()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to take request state")
-		return fmt.Errorf("500 - Internal Server Error")
+
+		if config.Production {
+			return fmt.Errorf("500 - Internal Server Error")
+		}
+
+		return err
 	}
 	releaseState := false
 	defer func() {
@@ -93,7 +101,13 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update associated state for request: %s", err)
+		log.Error().Err(err).Msg("Failed to update associated state for request")
+
+		if config.Production {
+			return fmt.Errorf("500 - Internal Server Error")
+		}
+
+		return err
 	}
 
 	// load the callback
@@ -113,7 +127,14 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	err = reqState.Call(1, 1)
 	if err != nil {
 		releaseState = true
-		return fmt.Errorf("lua error: %s", err)
+
+		log.Error().Err(err).Msg("Lua failed to handle request")
+
+		if config.Production {
+			return fmt.Errorf("500 - Internal Server Error")
+		}
+
+		return err
 	}
 
 	response := reqState.ToString(reqState.GetTop())
