@@ -33,7 +33,7 @@ func LoadKV(state *lua.State) error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to associate *kv.KV: %s", err)
+		return fmt.Errorf("Failed to associate *kv.KV: %s", err)
 	}
 
 	associatedStore := func(medium string) *kv.KV {
@@ -41,18 +41,18 @@ func LoadKV(state *lua.State) error {
 		case "disk":
 			as, ok := las.Get(state)
 			if !ok {
-				log.Fatal().Msg("failed to retrieve disk store from las")
+				log.Fatal().Msg("Failed to retrieve disk store from las")
 			}
 			return as.DiskStore
 		case "memory":
 			as, ok := las.Get(state)
 			if !ok {
-				log.Fatal().Msg("failed to retrieve memory store from las")
+				log.Fatal().Msg("Failed to retrieve memory store from las")
 			}
 			return as.MemoryStore
 		}
 
-		log.Fatal().Msg("incorrect medium for fetching associated store")
+		log.Fatal().Msg("Incorrect medium for fetching associated store")
 		return nil
 	}
 

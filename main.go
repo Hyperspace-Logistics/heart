@@ -79,7 +79,7 @@ func main() {
 		return nuState.DoFile(config.Path)
 	})
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to initialize lua state")
+		log.Fatal().Err(err).Msg("Failed to initialize lua state")
 	}
 	defer statePool.Cleanup()
 	defer kv.CloseStores()

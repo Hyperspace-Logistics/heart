@@ -23,7 +23,7 @@ type Config struct {
 // NewConfig gets you a new *Config
 func NewConfig() *Config {
 	if len(os.Args) < 2 {
-		log.Fatal().Msg("usage: heart [path]")
+		log.Fatal().Msg("Usage: heart [path]")
 	}
 	path := os.Args[1]
 
@@ -46,7 +46,7 @@ func NewConfig() *Config {
 
 	initialPoolSize, err := strconv.Atoi(initialPoolSizeString)
 	if err != nil {
-		log.Fatal().Msg("env variable INITIAL_POOL_SIZE should be an integer")
+		log.Fatal().Msg("Env variable INITIAL_POOL_SIZE should be an integer")
 	}
 
 	dbSyncWrites := os.Getenv("DB_SYNC_WRITES") != "false"

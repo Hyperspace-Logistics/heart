@@ -130,7 +130,7 @@ func (p *Pool) Take() (state *lua.State, err error) {
 func (p *Pool) Return(state *lua.State) {
 	as, ok := las.Get(state)
 	if !ok {
-		log.Fatal().Msg("failed to get associated state on pool return")
+		log.Fatal().Msg("Failed to get associated state on pool return")
 	}
 
 	if as.GetTakeCount() > 10000 {
@@ -140,7 +140,7 @@ func (p *Pool) Return(state *lua.State) {
 
 			nuState, err := p.newState()
 			if err != nil {
-				log.Fatal().Err(err).Msg("failed to allocate new state")
+				log.Fatal().Err(err).Msg("Failed to allocate new state")
 			}
 
 			p.lock.Lock()

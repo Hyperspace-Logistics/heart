@@ -19,7 +19,7 @@ import (
 func Routes(app *fiber.App, statePool *pool.Pool) {
 	state, err := statePool.Take()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve initial lua state")
+		log.Fatal().Err(err).Msg("Failed to retrieve initial lua state")
 	}
 	defer statePool.Return(state)
 
@@ -75,7 +75,7 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.Pool) error {
 	reqState, err := statePool.Take()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to take request state")
+		log.Error().Err(err).Msg("Failed to take request state")
 		return fmt.Errorf("500 - Internal Server Error")
 	}
 	releaseState := false

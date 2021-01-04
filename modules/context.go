@@ -13,7 +13,7 @@ func LoadContext(state *lua.State) error {
 	ctx := func(state *lua.State) *fiber.Ctx {
 		as, ok := las.Get(state)
 		if !ok {
-			log.Fatal().Msg("failed to load *las.AssociatedState for request")
+			log.Fatal().Msg("Failed to load *las.AssociatedState for request")
 		}
 
 		return as.Ctx
@@ -25,7 +25,7 @@ func LoadContext(state *lua.State) error {
 
 		err := ctx(state).Redirect(path, code)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to redirect")
+			log.Error().Err(err).Msg("Failed to redirect")
 		}
 
 		return 0
