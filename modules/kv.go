@@ -75,9 +75,10 @@ func LoadKV(state *lua.State) error {
 
 	kvListKeys := func(store *kv.KV) func(*lua.State) int {
 		return func(state *lua.State) int {
+			prefix := state.ToString(state.GetTop() - 1)
 			limit := state.ToInteger(state.GetTop())
 
-			results, err := store.ListKeys(limit)
+			results, err := store.ListKeys(prefix, limit)
 			if err != nil {
 				log.Error().Err(err).Msg("kv.listKeys failed")
 			}
@@ -94,9 +95,10 @@ func LoadKV(state *lua.State) error {
 
 	kvListPairs := func(store *kv.KV) func(*lua.State) int {
 		return func(state *lua.State) int {
+			prefix := state.ToString(state.GetTop() - 1)
 			limit := state.ToInteger(state.GetTop())
 
-			results, err := store.ListPairs(limit)
+			results, err := store.ListPairs(prefix, limit)
 			if err != nil {
 				log.Error().Err(err).Msgf("kv.listPairs failed")
 			}
@@ -246,12 +248,12 @@ func LoadKV(state *lua.State) error {
 				return _{{.medium}}_get(key)
 			end
 
-			function kv.listKeys(limit)
-				return _{{.medium}}_list_keys(limit)
+			function kv.listKeys(prefix, limit)
+				return _{{.medium}}_list_keys(prefix, limit)
 			end
 
-			function kv.listPairs(limit)
-				return _{{.medium}}_list_pairs(limit)
+			function kv.listPairs(prefix, limit)
+				return _{{.medium}}_list_pairs(prefix, limit)
 			end
 			
 			function kv.ulid()

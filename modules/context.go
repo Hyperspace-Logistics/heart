@@ -239,11 +239,6 @@ func LoadContext(state *lua.State) error {
 				return _method()
 			end
 
-			-- get the request path
-			function context.path()
-				return _path()
-			end
-
 			-- get the request protocol
 			function context.protocol()
 				return _protocol()

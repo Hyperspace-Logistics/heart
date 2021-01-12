@@ -4,7 +4,7 @@ local kv = require('heart.v1.kv.disk')
 
 -- create document in bucket
 app.post('/documents/:bucket/:id', function(ctx)
-  local id = ctx.pathParam('bucket') .. '_documents_' .. ctx.pathParam('id')
+  local id = ctx.pathParam('bucket') .. '_' .. ctx.pathParam('id')
   local document = ctx.body().json().document
 
   if document == nil then
@@ -21,7 +21,7 @@ end)
 
 -- retrieve document in bucket
 app.get('/documents/:bucket/:id', function(ctx)
-  local id = ctx.pathParam('bucket') .. '_documents_' .. ctx.pathParam('id')
+  local id = ctx.pathParam('bucket') .. '_' .. ctx.pathParam('id')
   local document = kv.get(id)
 
   if document == '' then
@@ -33,7 +33,7 @@ end)
 
 -- delete document in bucket
 app.delete('/documents/:bucket/:id', function(ctx)
-  local id = ctx.pathParam('bucket') .. '_documents_' .. ctx.pathParam('id')
+  local id = ctx.pathParam('bucket') .. '_' .. ctx.pathParam('id')
 
   kv.transaction(function(store)
     store.delete(id)
@@ -43,6 +43,6 @@ app.delete('/documents/:bucket/:id', function(ctx)
 end)
 
 -- list documents in bucket
-app.get('/documents', function(ctx)
-  return ctx.json({documents = kv.listPairs(10)})
+app.get('/documents/:bucket', function(ctx)
+  return ctx.json({documents = kv.listPairs(ctx.pathParam('bucket'), 10)})
 end)

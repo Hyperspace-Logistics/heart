@@ -144,8 +144,8 @@ func (kv *KV) Get(key string) (string, error) {
 	return value, err
 }
 
-// ListKeys up to the limit specified or error
-func (kv *KV) ListKeys(limit int) ([]string, error) {
+// ListKeys with the given prefix up to the limit specified or error
+func (kv *KV) ListKeys(prefix string, limit int) ([]string, error) {
 	results := make([]string, 0)
 
 	count := 0
@@ -155,7 +155,7 @@ func (kv *KV) ListKeys(limit int) ([]string, error) {
 
 		it := txn.NewIterator(opts)
 		defer it.Close()
-		for it.Rewind(); it.Valid(); it.Next() {
+		for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
 			if count >= limit {
 				break
 			}
@@ -173,8 +173,8 @@ func (kv *KV) ListKeys(limit int) ([]string, error) {
 	return results, nil
 }
 
-// ListPairs up to the limit specified or error
-func (kv *KV) ListPairs(limit int) ([]Pair, error) {
+// ListPairs with the given prefix up to the limit specified or error
+func (kv *KV) ListPairs(prefix string, limit int) ([]Pair, error) {
 	results := make([]Pair, 0)
 
 	count := 0
@@ -182,7 +182,7 @@ func (kv *KV) ListPairs(limit int) ([]Pair, error) {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
-		for it.Rewind(); it.Valid(); it.Next() {
+		for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
 			if count >= limit {
 				break
 			}

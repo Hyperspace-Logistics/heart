@@ -18,6 +18,7 @@ that can store data both in memory and on disk.
 - Fast K/V store
 - Versioned API
 - Stable Lua 5.1 VM
+- Structured logs
 
 ## Getting Started
 
@@ -39,5 +40,5 @@ end)
 ## Caveats
 
 Global state, like with any parallel web server, is highly discouraged. For performance reasons Heart keeps a
-pool of Lua state to reuse in subsequent requests. This can make global state seem stable at low request volumes
-but it's functionally random under load. Be cautious!
+pool of Lua state to reuse in subsequent requests. State is reused in a random order and therefore global state is functionally
+random in Heart. Be cautious!
