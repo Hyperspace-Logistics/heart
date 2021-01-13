@@ -15,4 +15,7 @@ RUN apt update && apt install -y --no-install-recommends libluajit-5.1-dev
 # Build the dynamically linked binary
 RUN go build -tags luajit
 
+WORKDIR /root/
+RUN mv /go/src/github.com/sosodev/heart/heart .
+
 ENTRYPOINT [ "./heart" ]
