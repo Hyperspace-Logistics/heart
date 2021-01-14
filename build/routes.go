@@ -11,6 +11,10 @@ import (
 	"github.com/sosodev/heart/pool"
 )
 
+var (
+	appConfig *config.Config = config.NewConfig()
+)
+
 // Routes for the *fiber.App from the initial *lua.State
 //
 // TODO:
@@ -74,13 +78,11 @@ func Routes(app *fiber.App, statePool *pool.Pool) {
 
 // handle an incoming request with Lua
 func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.Pool) error {
-	config := config.NewConfig()
-
 	reqState, err := statePool.Take()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to take request state")
 
-		if config.Production {
+		if appConfig.Production {
 			return fmt.Errorf("500 - Internal Server Error")
 		}
 
@@ -103,7 +105,7 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update associated state for request")
 
-		if config.Production {
+		if appConfig.Production {
 			return fmt.Errorf("500 - Internal Server Error")
 		}
 
@@ -112,9 +114,10 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 
 	// load the callback
 	reqState.GetGlobal("app")
-	reqState.GetField(reqState.GetTop(), "routes")
-	reqState.GetField(reqState.GetTop(), route)
-	reqState.GetField(reqState.GetTop(), method)
+	initialTop := reqState.GetTop()
+	reqState.GetField(initialTop, "routes")
+	reqState.GetField(initialTop+1, route)
+	reqState.GetField(initialTop+2, method)
 
 	// load the context module as the only argument
 	// look, I know what you're thinking
@@ -123,14 +126,14 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	// But I want the API to look pretty and that would be kind of off putting for people who come from a more traditional web server
 	// Heart is kind of unique in the way that it could seemingly bind global state to a parallel request
 	// and that's just a little weird when our brains are wired to think statelessly 🤷
-	reqState.GetGlobal("_heart_ctx")
+	reqState.GetField(initialTop, "ctx")
 	err = reqState.Call(1, 1)
 	if err != nil {
 		releaseState = true
 
 		log.Error().Err(err).Msg("Lua failed to handle request")
 
-		if config.Production {
+		if appConfig.Production {
 			return fmt.Errorf("500 - Internal Server Error")
 		}
 

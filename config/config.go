@@ -11,6 +11,7 @@ import (
 // Config for the application
 type Config struct {
 	Production      bool
+	Profile         bool
 	Path            string
 	DBPath          string
 	Version         string
@@ -28,6 +29,7 @@ func NewConfig() *Config {
 	path := os.Args[1]
 
 	production := os.Getenv("PROD") == "true"
+	profile := os.Getenv("PROFILE") == "true"
 
 	dbPath := os.Getenv("DB_PATH")
 	if len(dbPath) == 0 {
@@ -71,6 +73,7 @@ func NewConfig() *Config {
 
 	return &Config{
 		Production:      production,
+		Profile:         profile,
 		Path:            path,
 		Version:         "0.1",
 		InitialPoolSize: initialPoolSize,

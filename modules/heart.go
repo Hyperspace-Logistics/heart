@@ -26,9 +26,7 @@ func LoadHeart(app *fiber.App, state *lua.State) error {
 
 	return state.DoString(`
 		package.preload['heart.v1'] = function() 
-			_heart_ctx = require('heart.v1.context')
-
-			local heart = { routes = {} }
+			local heart = { routes = {}, ctx = require('heart.v1.context') }
 
 			function registerCallback(method, path, callback)
 				if heart.routes[path] == nil then

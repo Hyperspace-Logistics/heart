@@ -2,13 +2,13 @@ package pool
 
 import (
 	"fmt"
-	"math/rand"
 	"sync"
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/rs/zerolog/log"
 	"github.com/sosodev/heart/config"
 	"github.com/sosodev/heart/las"
+	"github.com/valyala/fastrand"
 )
 
 // TODO: consider ways to make the pool self-optimizing
@@ -76,7 +76,7 @@ func (p *Pool) randomTake() *lua.State {
 		return state
 	}
 
-	randIndex := rand.Intn(p.size())
+	randIndex := fastrand.Uint32n(uint32(p.size()))
 	state = p.stack[randIndex]
 	p.stack[randIndex] = p.stack[p.top]
 	p.stack = p.stack[:p.top]

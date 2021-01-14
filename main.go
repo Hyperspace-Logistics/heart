@@ -6,6 +6,7 @@ import (
 
 	"github.com/aarzilli/golua/lua"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
 	"github.com/rs/zerolog/log"
@@ -29,6 +30,12 @@ func main() {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
+
+	// enable pprof profiling if requested
+	if config.Profile {
+		log.Info().Msg("Enabling pprof profiler on route /debug/pprof/")
+		app.Use(pprof.New())
+	}
 
 	// logging middleware
 	app.Use(func(c *fiber.Ctx) error {
@@ -91,9 +98,9 @@ func main() {
 
 	// swap out the log's writer for a non-blocking one
 	// this greatly increases logging throughput
-	nonBlockingWriter := diode.NewWriter(os.Stdout, 10000, 100*time.Microsecond, func(missed int) {})
-	defer nonBlockingWriter.Close()
 	if config.Production {
+		nonBlockingWriter := diode.NewWriter(os.Stdout, 10000, 1*time.Millisecond, func(missed int) {})
+		defer nonBlockingWriter.Close()
 		log.Logger = log.Output(nonBlockingWriter)
 	}
 

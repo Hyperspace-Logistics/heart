@@ -1,6 +1,6 @@
 # Heart 💜
 
-A high performance Lua web server with a simple, powerful API
+A high performance Lua web server with a simple, powerful API. See the full documentation [here](https://heart.hyperspacelogistics.com/).
 
 ## Overview
 
@@ -12,7 +12,6 @@ that can store data both in memory and on disk.
 
 ## Features
 
-- Single binary
 - High throughput
 - Low latency
 - Fast K/V store
@@ -22,10 +21,10 @@ that can store data both in memory and on disk.
 
 ## Getting Started
 
-- Download the binary appropriate for your machine
-- Create a Lua file using the Heart API
+- Create a Lua file that uses the Heart API
 
 ```Lua
+-- main.lua
 app = require('heart.v1')
 
 app.get('/:name', function(ctx)
@@ -33,12 +32,13 @@ app.get('/:name', function(ctx)
 end)
 ```
 
-- Start Heart and point it at your Lua `./heart main.lua`
+- Run Heart with Docker and point it at your Lua `docker run -v $(pwd):/root/app -p 3333:3333 hyperspacelogistics/heart:latest app/main.lua`
 - `curl localhost:3333/world` to see the result
 - Congratulations you're running a wicked fast Lua server 🎊
 
 ## Caveats
 
 Global state, like with any parallel web server, is highly discouraged. For performance reasons Heart keeps a
-pool of Lua state to reuse in subsequent requests. State is reused in a random order and therefore global state is functionally
-random in Heart. Be cautious!
+pool of Lua state to reuse in subsequent requests. State is reused in a random order and therefore global state that
+is modified in requests is functionally random in Heart. Be cautious! Static global state, like the app variable, is the exception
+and can generally be treated as safe.
