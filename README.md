@@ -36,6 +36,14 @@ end)
 - `curl localhost:3333/world` to see the result
 - Congratulations you're running a wicked fast Lua server 🎊
 
+## Benchmark
+
+![Benchmark](benchmark.png)
+
+Each stack was tasked with rendering `{"hello": "world"}` through their JSON stack in production mode, if applicable, with logging disabled.
+[wrk](https://github.com/wg/wrk) was used with the command `wrk -t32 -c512 -d30s http://localhost:3333`.
+All benchmarks were performed on a CPU-optimized DigitalOcean droplet that had 32vCPUs and 64 GB of RAM.
+
 ## Caveats
 
 Global state, like with any parallel web server, is highly discouraged. For performance reasons Heart keeps a
