@@ -28,7 +28,7 @@ that can store data both in memory and on disk.
 app = require('heart.v1')
 
 app.get('/:name', function(ctx)
-  return 'Hello, ' .. ctx.pathParams('name') .. '!'
+  return 'Hello, ' .. ctx.pathParam('name') .. '!'
 end)
 ```
 
