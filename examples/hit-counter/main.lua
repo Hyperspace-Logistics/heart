@@ -1,4 +1,4 @@
-app = require('heart.v1')
+local app = require('heart.v1')
 local kv = require('heart.v1.kv.memory')
 
 local function get_hits()

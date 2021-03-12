@@ -113,7 +113,7 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 	}
 
 	// load the callback
-	reqState.GetGlobal("app")
+	reqState.GetGlobal("_heart")
 	initialTop := reqState.GetTop()
 	reqState.GetField(initialTop, "routes")
 	reqState.GetField(initialTop+1, route)
@@ -148,7 +148,7 @@ func handleRequest(ctx *fiber.Ctx, method string, route string, statePool *pool.
 
 // loop the routes built up in the app global variable
 func loopRoutes(state *lua.State, callback func(string)) {
-	state.GetGlobal("app")
+	state.GetGlobal("_heart")
 	state.GetField(state.GetTop(), "routes")
 	state.PushNil()
 

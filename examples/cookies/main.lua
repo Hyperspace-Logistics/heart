@@ -1,4 +1,4 @@
-app = require('heart.v1')
+local app = require('heart.v1')
 
 -- get the value of the cookie 'cookie'
 app.get('/cookie', function(ctx)

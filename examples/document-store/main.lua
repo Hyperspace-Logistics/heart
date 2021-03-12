@@ -1,4 +1,4 @@
-app = require('heart.v1')
+local app = require('heart.v1')
 local json = require('heart.v1.json')
 local kv = require('heart.v1.kv.disk')
 

@@ -1,4 +1,4 @@
-app = require('heart.v1')
+local app = require('heart.v1')
 
 -- This handler benchmarks at 270k requests a second on my machine :o
 -- with an average latency of 183 microseconds
