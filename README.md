@@ -25,7 +25,7 @@ that can store data both in memory and on disk.
 
 ```Lua
 -- main.lua
-app = require('heart.v1')
+local app = require('heart.v1')
 
 app.get('/:name', function(ctx)
   return 'Hello, ' .. ctx.pathParam('name') .. '!'
@@ -48,5 +48,5 @@ All benchmarks were performed on a CPU-optimized DigitalOcean droplet that had 3
 
 Global state, like with any parallel web server, is highly discouraged. For performance reasons Heart keeps a
 pool of Lua state to reuse in subsequent requests. State is reused in a random order and therefore global state that
-is modified in requests is functionally random in Heart. Be cautious! Static global state, like the app variable, is the exception
+is modified in requests is functionally random in Heart. Be cautious! Static global state is the exception
 and can generally be treated as safe.

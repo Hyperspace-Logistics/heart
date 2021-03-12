@@ -1,3 +1,2 @@
 - create integration tests that double as performance regression tests
 - dogfood
-- release v0.1?
