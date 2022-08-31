@@ -2,6 +2,10 @@
 
 A high performance Lua web server with a simple, powerful API. See the full documentation [here](https://heart.hyperspacelogistics.com/).
 
+## Check out [redbean](https://redbean.dev/)!
+
+If you like Heart then you'll probably love redbean. It's a very similar concept but arguably executed and documented better. 
+
 ## Overview
 
 Heart combines Go's [fasthttp](https://github.com/valyala/fasthttp) with [LuaJIT](https://luajit.org/)
